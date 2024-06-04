@@ -24,6 +24,14 @@ wildcard = "Markdown (*.md)|*.md|" \
 
 
 
+def png_to_icon(png_path):
+    # 加载.png图片并转换为wx.Bitmap
+    bitmap = wx.Bitmap(png_path)
+
+    # 尝试从wx.Bitmap创建wx.Icon，注意这可能不是所有情况下都有效
+    return wx.Icon(bitmap)
+
+
 class findDlg(wx.Dialog):
     def __init__(self, parent):
         super().__init__(parent, title="Find", size=(300, 140))
@@ -90,10 +98,11 @@ class textEditor(wx.Frame):
         self.pos = 0
         self.size = 0
 
-        self.appname = "Littera"
+        self.appname = "ReqGen"
         self.appversion = "v1.0b"
 
-        icon = wx.Icon("favicon.ico", type=wx.BITMAP_TYPE_ICO)
+        # icon = wx.Icon("favicon.png", type=wx.BITMAP_TYPE_ICO)
+        icon = png_to_icon("logo.png")
 
         self.findDlg = None
 
@@ -112,7 +121,7 @@ class textEditor(wx.Frame):
         rPanel = wx.Panel(self.splitter)
 
         lPanel.SetBackgroundColour("#F4F9F9")
-        rPanel.SetBackgroundColour("#FFFFFF")
+        rPanel.SetBackgroundColour("#cc2624")
 
         self.splitter.SplitVertically(lPanel, rPanel, -1)
         self.splitter.SetMinimumPaneSize(460)

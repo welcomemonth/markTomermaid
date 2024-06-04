@@ -6,12 +6,10 @@ Website: github.com/programmingdesigner/littera
 Last modified: august 2022
 """
 
-# 导入所需的模块
 import os
 import itertools
 import webbrowser
 
-# 导入wxPython和其他第三方库
 import wx
 import wx.richtext as rt
 import wx.html as html
@@ -19,148 +17,157 @@ import wx.adv
 import markdown
 from xhtml2pdf import pisa
 
-# 文件选择对话框的通配符
+
 wildcard = "Markdown (*.md)|*.md|" \
            "Text (*.txt)|*.txt|"   \
            "All (*.*)|*.*"         \
 
-# 定义查找对话框类
+
+
+def png_to_icon(png_path):
+    # 加载.png图片并转换为wx.Bitmap
+    bitmap = wx.Bitmap(png_path)
+
+    # 尝试从wx.Bitmap创建wx.Icon，注意这可能不是所有情况下都有效
+    return wx.Icon(bitmap)
+
+
 class findDlg(wx.Dialog):
     def __init__(self, parent):
         super().__init__(parent, title="Find", size=(300, 140))
 
-        self.parent = parent  # 记录父窗口的引用
+        self.parent = parent
 
-        panel = wx.Panel(self)  # 创建面板
+        panel = wx.Panel(self)
 
-        # 创建垂直和水平布局管理器
         vBox = wx.BoxSizer(wx.VERTICAL)
         hBox = wx.BoxSizer(wx.HORIZONTAL)
         btnBox = wx.BoxSizer(wx.HORIZONTAL)
 
-        # 创建并添加标签和文本输入框到水平布局中
         label = wx.StaticText(panel, label="Search for")
         self.textEntry = wx.TextCtrl(panel)
+
         hBox.Add(label, flag=wx.RIGHT | wx.ALIGN_CENTER_VERTICAL, border=10)
         hBox.Add(self.textEntry, proportion=1)
 
-        # 将水平布局添加到垂直布局中
         vBox.Add(hBox, flag=wx.EXPAND | wx.LEFT | wx.RIGHT | wx.TOP, border=16)
-        vBox.Add((-1, 10))  # 添加空白空间
+        vBox.Add((-1, 10))
 
-        # 创建查找按钮和查找下一个按钮
         findBtn = wx.Button(panel, wx.ID_OK, label="Find", size=(75, 25))
-        findNextBtn = wx.Button(panel, label="Find Next", size=(75, 25))
-        findBtn.SetDefault()  # 设置默认按钮
+        findNextBtn = wx.Button(
+            panel, label="Find Next", size=(75, 25))
+        findBtn.SetDefault()
 
-        # 将按钮添加到按钮布局中
         btnBox.Add(findBtn)
         btnBox.Add(findNextBtn, flag=wx.LEFT | wx.BOTTOM)
 
-        # 将按钮布局添加到垂直布局中
         vBox.Add(btnBox, flag=wx.ALIGN_RIGHT | wx.RIGHT, border=16)
 
-        # 设置面板的布局管理器
         panel.SetSizer(vBox)
 
-        # 绑定事件
         self.Bind(wx.EVT_CLOSE, self.onClose)
         findBtn.Bind(wx.EVT_BUTTON, self.parent.onFind)
         findNextBtn.Bind(wx.EVT_BUTTON, self.onFindNext)
 
-        self.Centre()  # 窗口居中
+        self.Centre()
 
     def onClose(self, e):
-        self.Destroy()  # 销毁对话框
-        self.parent.findDlg = None  # 清空父窗口中的对话框引用
-        self.parent.statusbar.SetStatusText("")  # 清空状态栏文本
-        print("findDlg destroyed")  # 打印销毁消息
+        self.Destroy()
+        self.parent.findDlg = None
+        self.parent.statusbar.SetStatusText("")
+        print("findDlg destroyed")
 
     def onFindNext(self, e):
-        self.parent.textCtrl.SetInsertionPoint(next(self.parent.iterators))  # 设置插入点
-        self.parent.textCtrl.ScrollIntoView(self.parent.textCtrl.GetInsertionPoint(), 13)  # 滚动到插入点
-        self.parent.textCtrl.Update()  # 更新文本控制
-        self.parent.textCtrl.Refresh()  # 刷新文本控制
-        self.parent.textCtrl.SetFocus()  # 设置焦点
+        self.parent.textCtrl.SetInsertionPoint(next(self.parent.iterators))
+        self.parent.textCtrl.ScrollIntoView(
+            self.parent.textCtrl.GetInsertionPoint(), 13)
+        self.parent.textCtrl.Update()
+        self.parent.textCtrl.Refresh()
+        self.parent.textCtrl.SetFocus()
 
 
-# 定义文本编辑器类
 class textEditor(wx.Frame):
     def __init__(self, filename="untitled"):
         super(textEditor, self).__init__(None, size=(960, 540))
 
-        # 属性
-        self.dirname = "."  # 当前目录
-        self.filename = filename  # 文件名
-        self.modify = False  # 修改标志
+        # Properties
+        self.dirname = "."
+        self.filename = filename
+        self.modify = False
 
-        self.pos = 0  # 光标位置
-        self.size = 0  # 文本大小
+        self.pos = 0
+        self.size = 0
 
-        self.appname = "Littera"  # 应用名
-        self.appversion = "v1.0b"  # 应用版本
+        self.appname = "ReqGen"
+        self.appversion = "v1.0b"
 
-        icon = wx.Icon("favicon.ico", type=wx.BITMAP_TYPE_ICO)  # 设置应用图标
+        # icon = wx.Icon("favicon.png", type=wx.BITMAP_TYPE_ICO)
+        icon = png_to_icon("logo.png")
 
-        self.findDlg = None  # 查找对话框引用
+        self.findDlg = None
 
-        # 字体
+        # Fonts
         wx.Font.AddPrivateFont("fonts/sans/NotoSans-Regular.ttf")
         font = wx.Font(16, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL,
                        underline=False, faceName="Noto Sans", encoding=wx.FONTENCODING_DEFAULT)
         labels = wx.Font(12, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL, wx.FONTWEIGHT_NORMAL,
                          underline=False, faceName="Noto Sans", encoding=wx.FONTENCODING_DEFAULT)
 
-        # 用户界面
-        self.splitter = wx.SplitterWindow(self, style=wx.SP_NO_XP_THEME)  # 创建分割窗口
-        self.splitter.SetBackgroundColour("#F4F9F9")  # 设置背景颜色
-        lPanel = wx.Panel(self.splitter)  # 左面板
-        rPanel = wx.Panel(self.splitter)  # 右面板
+        # Ui
+        self.splitter = wx.SplitterWindow(
+            self, style=wx.SP_NO_XP_THEME)
+        self.splitter.SetBackgroundColour("#F4F9F9")
+        lPanel = wx.Panel(self.splitter)
+        rPanel = wx.Panel(self.splitter)
 
-        lPanel.SetBackgroundColour("#F4F9F9")  # 设置左面板背景颜色
-        rPanel.SetBackgroundColour("#FFFFFF")  # 设置右面板背景颜色
+        lPanel.SetBackgroundColour("#F4F9F9")
+        rPanel.SetBackgroundColour("#cc2624")
 
-        self.splitter.SplitVertically(lPanel, rPanel, -1)  # 垂直分割面板
-        self.splitter.SetMinimumPaneSize(460)  # 设置最小面板大小
+        self.splitter.SplitVertically(lPanel, rPanel, -1)
+        self.splitter.SetMinimumPaneSize(460)
 
-        lSizer = wx.BoxSizer(wx.VERTICAL)  # 左面板垂直布局
-        rSizer = wx.BoxSizer(wx.VERTICAL)  # 右面板垂直布局
+        lSizer = wx.BoxSizer(wx.VERTICAL)
+        rSizer = wx.BoxSizer(wx.VERTICAL)
 
-        # 用户界面 -- 左面板
+        # Ui -- lPanel
         lLabel = wx.StaticText(lPanel, label="Text Editor")
-        lLabel.SetFont(labels)  # 设置标签字体
-        lLabel.SetForegroundColour("#9598A1")  # 设置标签前景色
+        lLabel.SetFont(labels)
+        lLabel.SetForegroundColour("#9598A1")
 
-        # 用户界面 -- 文本控制
+        # Ui -- textCtrl
         self.textCtrl = rt.RichTextCtrl(lPanel, -1, style=rt.RE_MULTILINE | wx.TE_RICH2 |
                                         wx.TE_NO_VSCROLL | wx.TE_WORDWRAP | wx.TE_AUTO_URL | wx.TE_PROCESS_TAB | wx.BORDER_NONE)
-        self.textCtrl.SetEditable(True)  # 设置文本控制可编辑
+        self.textCtrl.SetEditable(True)
+        # self.require_input = wx.TextCtrl(lPanel)
 
         textAttr = rt.RichTextAttr()
-        textAttr.SetFont(font)  # 设置文本字体
-        textAttr.SetTextColour("#3C4245")  # 设置文本颜色
-        textAttr.SetLineSpacing(12)  # 设置行间距
-        textAttr.SetLeftIndent(60)  # 设置左缩进
-        textAttr.SetRightIndent(80)  # 设置右缩进
+        textAttr.SetFont(font)
+        textAttr.SetTextColour("#3C4245")
+        textAttr.SetLineSpacing(12)
+        textAttr.SetLeftIndent(60)
+        textAttr.SetRightIndent(80)
 
-        self.textCtrl.SetBasicStyle(textAttr)  # 设置文本基本样式
-        self.textCtrl.SetBackgroundColour("#F4F9F9")  # 设置文本背景颜色
+        self.textCtrl.SetBasicStyle(textAttr)
+        self.textCtrl.SetBackgroundColour("#F4F9F9")
 
-        self.mdExtensions = ['tables', 'sane_lists', 'fenced_code', 'smarty']  # Markdown扩展
+        self.mdExtensions = ['tables', 'sane_lists', 'fenced_code', 'smarty']
 
-        # 用户界面 -- 右面板
+        # Ui -- rPanel
         rLabel = wx.StaticText(rPanel, label="HTML Preview")
-        rLabel.SetFont(labels)  # 设置标签字体
-        rLabel.SetForegroundColour("#9598A1")  # 设置标签前景色
+        rLabel.SetFont(labels)
+        rLabel.SetForegroundColour("#9598A1")
 
-        # 用户界面 -- HTML预览
+        # Ui -- htmlPrev
         self.htmlPrev = html.HtmlWindow(rPanel)
-        self.htmlPrev.SetStandardFonts(16, "Noto Sans")  # 设置预览字体
+        self.htmlPrev.SetStandardFonts(16, "Noto Sans")
 
-        # 用户界面 -- 配置布局
+        # Ui -- Config
         lSizer.Add(lLabel, flag=wx.LEFT | wx.TOP, border=24)
         lSizer.Add((-1, 20))
         lSizer.Add(self.textCtrl, proportion=1, flag=wx.EXPAND)
+        # line = wx.StaticLine(lPanel)
+        # lSizer.Add(line, flag=wx.EXPAND | wx.BOTTOM | wx.TOP, border=5)
+        # lSizer.Add(self.require_input, proportion=1, flag=wx.EXPAND)
         lPanel.SetSizer(lSizer)
 
         rSizer.Add(rLabel, flag=wx.LEFT | wx.TOP, border=24)
@@ -172,21 +179,19 @@ class textEditor(wx.Frame):
         sizer.Add(self.splitter, 1, flag=wx.EXPAND)
         self.SetSizer(sizer)
 
-        self.SetIcon(icon)  # 设置窗口图标
-        self.Centre()  # 窗口居中
+        self.SetIcon(icon)
+        self.Centre()
 
-        # 功能
+        # Functions
         self.setTitle()
         self.createMenu()
         self.setStatusBar()
         self.bindEvents()
         self.assignHotkeys()
 
-    # 设置窗口标题
     def setTitle(self):
         super(textEditor, self).SetTitle(self.filename + " - " + self.appname)
 
-    # 创建菜单
     def createMenu(self):
         menuBar = wx.MenuBar()
 
@@ -195,181 +200,269 @@ class textEditor(wx.Frame):
         viewMenu = wx.Menu()
         helpMenu = wx.Menu()
 
-        self.fileMenu_new = fileMenu.Append(wx.ID_NEW, "&New\tCtrl+N")
-        self.fileMenu_open = fileMenu.Append(wx.ID_OPEN, "&Open\tCtrl+O")
+        self.fileMenu_new = fileMenu.Append(
+            wx.ID_NEW, "&New\tCtrl+N")
+        self.fileMenu_open = fileMenu.Append(
+            wx.ID_OPEN, "&Open\tCtrl+O")
         fileMenu.AppendSeparator()
-        self.fileMenu_save = fileMenu.Append(wx.ID_SAVE, "&Save\tCtrl+S")
-        self.fileMenu_saveas = fileMenu.Append(wx.ID_SAVEAS, "Save &As\tShift+Ctrl+S")
+        self.fileMenu_save = fileMenu.Append(
+            wx.ID_SAVE, "&Save\tCtrl+S")
+        self.fileMenu_saveAs = fileMenu.Append(
+            wx.ID_SAVEAS, "&Save As\tCtrl+Shift+S")
         fileMenu.AppendSeparator()
-        self.fileMenu_print = fileMenu.Append(wx.ID_PRINT, "&Print\tCtrl+P")
+        self.fileMenu_exportPdf = fileMenu.Append(
+            wx.ID_ANY, "&Export as PDF (.pdf)\tCtrl+Shift+E")
         fileMenu.AppendSeparator()
-        self.fileMenu_exit = fileMenu.Append(wx.ID_EXIT, "E&xit\tAlt+F4")
+        self.fileMenu_quit = fileMenu.Append(
+            wx.ID_EXIT, "&Quit\tCtrl+Q")
 
-        self.editMenu_undo = editMenu.Append(wx.ID_UNDO, "&Undo\tCtrl+Z")
-        self.editMenu_redo = editMenu.Append(wx.ID_REDO, "&Redo\tShift+Ctrl+Z")
-        editMenu.AppendSeparator()
-        self.editMenu_cut = editMenu.Append(wx.ID_CUT, "Cu&t\tCtrl+X")
-        self.editMenu_copy = editMenu.Append(wx.ID_COPY, "&Copy\tCtrl+C")
-        self.editMenu_paste = editMenu.Append(wx.ID_PASTE, "&Paste\tCtrl+V")
-        editMenu.AppendSeparator()
-        self.editMenu_find = editMenu.Append(wx.ID_FIND, "&Find\tCtrl+F")
-        self.editMenu_replace = editMenu.Append(wx.ID_REPLACE, "Rep&lace\tCtrl+H")
+        self.editMenu_find = editMenu.Append(
+            wx.ID_FIND, "&Find\tCtrl+F")
 
-        self.viewMenu_markdown = viewMenu.AppendCheckItem(wx.ID_ANY, "Render &Markdown\tCtrl+M")
-        self.viewMenu_pdf = viewMenu.Append(wx.ID_ANY, "Save as &PDF\tShift+Ctrl+P")
+        self.viewMenu_prev = viewMenu.AppendCheckItem(
+            wx.ID_ANY, "Show HTML Preview")
+        viewMenu.Check(self.viewMenu_prev.GetId(), True)
 
-        self.helpMenu_about = helpMenu.Append(wx.ID_ABOUT, "&About")
+        self.helpMenu_reference = helpMenu.Append(
+            wx.ID_ANY, "&Reference\tCtrl+R")
+        self.helpMenu_credits = helpMenu.Append(
+            wx.ID_ANY, "&Credits")
+        self.helpMenu_license = helpMenu.Append(
+            wx.ID_ANY, "&License")
+        helpMenu.AppendSeparator()
+        self.helpMenu_website = helpMenu.Append(
+            wx.ID_ANY, "&Website")
+        self.helpMenu_about = helpMenu.Append(
+            wx.ID_ABOUT, "&About")
 
-        menuBar.Append(fileMenu, "&File")
-        menuBar.Append(editMenu, "&Edit")
-        menuBar.Append(viewMenu, "&View")
-        menuBar.Append(helpMenu, "&Help")
+        menuBar.Append(fileMenu, "File")
+        menuBar.Append(editMenu, "Edit")
+        menuBar.Append(viewMenu, "View")
+        menuBar.Append(helpMenu, "Help")
 
         self.SetMenuBar(menuBar)
 
-    # 设置状态栏
     def setStatusBar(self):
-        self.statusbar = self.CreateStatusBar()
+        self.statusbar = self.CreateStatusBar(style=wx.STB_DEFAULT_STYLE)
 
-    # 绑定事件
+        self.statusbar.SetFieldsCount(number=3, widths=[-1, 140, 30])
+        self.statusbar.SetStatusText(self.appversion, 2)
+
+        self.SetStatusBar(self.statusbar)
+
     def bindEvents(self):
         self.Bind(wx.EVT_MENU, self.onNew, self.fileMenu_new)
         self.Bind(wx.EVT_MENU, self.onOpen, self.fileMenu_open)
         self.Bind(wx.EVT_MENU, self.onSave, self.fileMenu_save)
-        self.Bind(wx.EVT_MENU, self.onSaveAs, self.fileMenu_saveas)
-        self.Bind(wx.EVT_MENU, self.onPrint, self.fileMenu_print)
-        self.Bind(wx.EVT_MENU, self.onExit, self.fileMenu_exit)
+        self.Bind(wx.EVT_MENU, self.onSaveAs, self.fileMenu_saveAs)
+        self.Bind(wx.EVT_MENU, self.onQuit, self.fileMenu_quit)
+        self.Bind(wx.EVT_MENU, self.onExport, self.fileMenu_exportPdf)
 
-        self.Bind(wx.EVT_MENU, self.onUndo, self.editMenu_undo)
-        self.Bind(wx.EVT_MENU, self.onRedo, self.editMenu_redo)
-        self.Bind(wx.EVT_MENU, self.onCut, self.editMenu_cut)
-        self.Bind(wx.EVT_MENU, self.onCopy, self.editMenu_copy)
-        self.Bind(wx.EVT_MENU, self.onPaste, self.editMenu_paste)
-        self.Bind(wx.EVT_MENU, self.onFind, self.editMenu_find)
-        self.Bind(wx.EVT_MENU, self.onReplace, self.editMenu_replace)
+        self.Bind(wx.EVT_MENU, self.togglePrev, self.viewMenu_prev)
 
-        self.Bind(wx.EVT_MENU, self.onToggleMarkdown, self.viewMenu_markdown)
-        self.Bind(wx.EVT_MENU, self.onSaveAsPDF, self.viewMenu_pdf)
-
+        self.Bind(wx.EVT_MENU, self.onCredits, self.helpMenu_credits)
+        self.Bind(wx.EVT_MENU, self.onReference, self.helpMenu_reference)
+        self.Bind(wx.EVT_MENU, self.onWebsite, self.helpMenu_website)
+        self.Bind(wx.EVT_MENU, self.onLicense, self.helpMenu_license)
         self.Bind(wx.EVT_MENU, self.onAbout, self.helpMenu_about)
 
-    # 分配快捷键
-    def assignHotkeys(self):
-        pass
+        self.Bind(wx.EVT_FIND, self.onFindDlg)
+        self.Bind(wx.EVT_MENU, self.onFindDlg, self.editMenu_find)
 
-    # 事件处理函数
+        self.htmlPrev.Bind(html.EVT_HTML_LINK_CLICKED, self.onURL)
+
+        self.textCtrl.Bind(wx.EVT_LEFT_UP, self.onCursorPos)
+
+    def assignHotkeys(self):
+        accelEntries = [wx.AcceleratorEntry() for i in range(7)]
+
+        accelEntries[0].Set(wx.ACCEL_CTRL, ord('N'), wx.ID_NEW)
+        accelEntries[1].Set(wx.ACCEL_CTRL, ord('O'), wx.ID_OPEN)
+        accelEntries[2].Set(wx.ACCEL_CTRL, ord('S'), wx.ID_SAVE)
+        accelEntries[3].Set(wx.ACCEL_CTRL | wx.ACCEL_SHIFT,
+                            ord('S'), wx.ID_SAVEAS)
+        accelEntries[4].Set(wx.ACCEL_CTRL, ord('Q'), wx.ID_EXIT)
+        accelEntries[5].Set(wx.ACCEL_CTRL, ord('F'), wx.ID_FIND)
+        accelEntries[6].Set(wx.ACCEL_CTRL, ord(
+            'R'), self.helpMenu_reference.GetId())
+
+        accelTable = wx.AcceleratorTable(accelEntries)
+        self.SetAcceleratorTable(accelTable)
+
+    def md2html(self):
+        md = self.textCtrl.GetValue()
+        html = markdown.markdown(
+            md, extensions=self.mdExtensions)
+        self.htmlPrev.SetPage(html)
+
     def onNew(self, e):
-        self.textCtrl.Clear()
+        self.textCtrl.SetValue("")
+        self.textCtrl.SetEditable(True)
+        print("read-only mode deactivated")
         self.filename = "untitled"
         self.setTitle()
-        self.statusbar.SetStatusText("New file created")
-        print("New file created")
+
+    def onFileDlg(self):
+        return dict(message="Choose a file", defaultDir=self.dirname)
+
+    def askFilename(self, **fileDlgOptions):
+        dlg = wx.FileDialog(self, **fileDlgOptions)
+
+        if dlg.ShowModal() == wx.ID_OK:
+            userFilename = True
+            self.filename = dlg.GetFilename()
+            self.dirname = dlg.GetDirectory()
+
+            self.setTitle()
+        else:
+            userFilename = False
+        dlg.Destroy()
+        print("fileDlg destroyed")
+
+        return userFilename
 
     def onOpen(self, e):
-        openFileDialog = wx.FileDialog(self, "Open", self.dirname, "", wildcard, wx.FD_OPEN | wx.FD_FILE_MUST_EXIST)
-        if openFileDialog.ShowModal() == wx.ID_CANCEL:
-            return
-
-        self.dirname = openFileDialog.GetDirectory()
-        self.filename = openFileDialog.GetFilename()
-        filepath = os.path.join(self.dirname, self.filename)
-
-        with open(filepath, "r") as file:
+        if self.askFilename(style=wx.FD_OPEN, **self.onFileDlg(), wildcard=wildcard):
+            file = open(os.path.join(self.dirname, self.filename),
+                        "r", encoding="utf-8")
             self.textCtrl.SetValue(file.read())
-
-        self.setTitle()
-        self.statusbar.SetStatusText(f"Opened {self.filename}")
-        print(f"Opened {self.filename}")
+            file.close()
+            self.md2html()
+            print("read-only mode deactivated")
+            self.textCtrl.SetEditable(True)
 
     def onSave(self, e):
-        if self.filename == "untitled":
-            self.onSaveAs(e)
-        else:
-            self.saveFile(self.filename)
+        with open(os.path.join(self.dirname, self.filename), "w", encoding="utf-8") as file:
+            file.write(self.textCtrl.GetValue())
+            self.md2html()
 
     def onSaveAs(self, e):
-        saveFileDialog = wx.FileDialog(self, "Save As", self.dirname, "", wildcard, wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
-        if saveFileDialog.ShowModal() == wx.ID_CANCEL:
-            return
+        if self.askFilename(defaultFile=self.filename, style=wx.FD_SAVE, **self.onFileDlg(), wildcard=wildcard):
+            self.onSave(e)
 
-        self.dirname = saveFileDialog.GetDirectory()
-        self.filename = saveFileDialog.GetFilename()
-        self.saveFile(self.filename)
+    def onExport(self, e):
+        if self.askFilename(defaultDir=self.dirname, defaultFile=self.filename, style=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT, wildcard="PDF (*.pdf)|*.pdf"):
 
-    def saveFile(self, filename):
-        filepath = os.path.join(self.dirname, filename)
-        with open(filepath, "w") as file:
-            file.write(self.textCtrl.GetValue())
+            content = markdown.markdown(
+                self.textCtrl.GetValue(), extensions=self.mdExtensions)
+            output = self.filename
 
-        self.setTitle()
-        self.statusbar.SetStatusText(f"Saved {self.filename}")
-        print(f"Saved {self.filename}")
+            with open("options/pdf_options.html", "r", encoding="utf-8") as options:
+                source = options.read() + content + \
+                    "<pdf:nextpage/><div><pdf:toc/></div><div><pdf:spacer height=""20pt""><hr><p>Made with <span style=""font-weight:bold;"">Littera Note-taking App</span></p></div>" + "</body></html>"
 
-    def onPrint(self, e):
-        pass
+            def html2pdf(source, output):
+                with open(os.path.join(self.dirname, output), "w+b") as file:
+                    pdf = pisa.CreatePDF(
+                        source, dest=file)
+                    return pdf.err
+            self.statusbar.SetStatusText("Exporting file...")
 
-    def onExit(self, e):
-        self.Close(True)
+            html2pdf(source, output)
+        self.statusbar.SetStatusText("")
 
-    def onUndo(self, e):
-        self.textCtrl.Undo()
+    def onFindDlg(self, e):
+        if self.findDlg == None:
+            print("findDlg opened")
 
-    def onRedo(self, e):
-        self.textCtrl.Redo()
-
-    def onCut(self, e):
-        self.textCtrl.Cut()
-
-    def onCopy(self, e):
-        self.textCtrl.Copy()
-
-    def onPaste(self, e):
-        self.textCtrl.Paste()
+            self.findDlg = findDlg(self)
+            self.findDlg.Show()
 
     def onFind(self, e):
-        if not self.findDlg:
-            self.findDlg = findDlg(self)
-        self.findDlg.Show()
-        self.statusbar.SetStatusText("Find dialog opened")
-        print("Find dialog opened")
+        word = self.findDlg.textEntry.GetValue().lower()
+        content = self.textCtrl.GetValue().lower()
 
-    def onReplace(self, e):
-        pass
+        index = 0
 
-    def onToggleMarkdown(self, e):
-        if self.viewMenu_markdown.IsChecked():
-            self.renderMarkdown()
+        if word in content:
+            count = content.count(word)
+            results = []
+
+            while index < len(content):
+                index = content.find(word, index)
+
+                if index == -1:
+                    break
+                index += 1
+                results.append((index-1))
+
+            self.iterators = itertools.cycle(results)
+
+            i = 0
+
+            for i in results:
+                self.textCtrl.SetInsertionPoint(next(self.iterators))
+                self.textCtrl.ScrollIntoView(
+                    self.textCtrl.GetInsertionPoint(), 13)
+                self.textCtrl.Update()
+                self.textCtrl.Refresh()
+                self.textCtrl.SetFocus()
+            self.statusbar.SetStatusText(
+                "Found " + str(count) + " instance(s) of " + word)
+            print(word, "found", str(count), "times at", str(results))
         else:
-            self.htmlPrev.SetPage("")
+            print(word, "not found")
 
-    def onSaveAsPDF(self, e):
-        html = self.htmlPrev.GetParser().GetSource()
-        filename = wx.FileSelector("Save as PDF", wildcard="*.pdf", flags=wx.FD_SAVE | wx.FD_OVERWRITE_PROMPT)
-        if filename:
-            if not filename.endswith(".pdf"):
-                filename += ".pdf"
+    def togglePrev(self, e):
+        if self.viewMenu_prev.IsChecked():
+            self.splitter.SetMinimumPaneSize(460)
+            self.statusbar.SetStatusText("HTML Preview shown")
+            print("HTML Preview shown")
+        else:
+            self.splitter.SetMinimumPaneSize(1)
+            self.statusbar.SetStatusText("HTML Preview hidden")
+            print("HTML Preview hidden")
 
-            with open(filename, "wb") as file:
-                pisa.CreatePDF(html, dest=file)
+    def onURL(self, e):
+        link = e.GetLinkInfo()
+        webbrowser.open_new_tab(link.GetHref())
+        return
 
-            self.statusbar.SetStatusText(f"Saved as {filename}")
-            print(f"Saved as {filename}")
+    def onReadOnly(self, filename):
+        with open(filename, "r", encoding="utf-8") as file:
+            self.textCtrl.SetValue(file.read())
+            self.md2html()
+            self.textCtrl.SetEditable(False)
+            print("read-only mode activated")
+
+    def onCredits(self, e):
+        self.onReadOnly("docs/credits.md")
+
+    def onReference(self, e):
+        self.onReadOnly("docs/reference.md")
+
+    def onWebsite(self, e):
+        webbrowser.open_new_tab("https://programmingdesigner.github.io/")
+
+    def onLicense(self, e):
+        webbrowser.open_new_tab(
+            "https://github.com/programmingdesigner/littera/blob/main/LICENSE")
 
     def onAbout(self, e):
-        wx.MessageBox(f"{self.appname} {self.appversion}\n\n"
-                      "A minimalistic markdown text editor with HTML preview and PDF export.",
-                      "About", wx.OK | wx.ICON_INFORMATION)
+        info = wx.adv.AboutDialogInfo()
+        info.SetName(self.appname)
+        info.SetVersion(self.appversion)
+        with open("docs/description.txt", "r", encoding="utf-8") as file:
+            info.SetDescription(file.read())
+        info.SetCopyright("(c) 2022 programmingdesigner")
+        wx.adv.AboutBox(info)
 
-    def renderMarkdown(self):
-        md = markdown.Markdown(extensions=self.mdExtensions)
-        html = md.convert(self.textCtrl.GetValue())
-        self.htmlPrev.SetPage(html)
-        self.statusbar.SetStatusText("Markdown rendered")
-        print("Markdown rendered")
+    def onCursorPos(self, e):
+        text = "Cursor Position: " + str(self.textCtrl.GetInsertionPoint())
+        self.statusbar.SetStatusText(text, 1)
+        e.Skip()
+
+    def onQuit(self, e):
+        self.Destroy()
 
 
-if __name__ == "__main__":
-    app = wx.App(False)
+def main():
+    app = wx.App()
     frame = textEditor()
     frame.Show()
     app.MainLoop()
+    pisa.showLogging()
+
+
+if __name__ == "__main__":
+    main()
