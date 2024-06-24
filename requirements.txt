@@ -4,7 +4,7 @@ autopep8==1.7.0
 future==0.18.2
 html5lib==1.1
 importlib-metadata==4.12.0
-Markdown==3.4.1
+Markdown~=3.5.1
 numpy==1.23.2
 pefile==2022.5.30
 Pillow==9.2.0
@@ -18,6 +18,8 @@ reportlab==3.6.2
 six==1.16.0
 toml==0.10.2
 webencodings==0.5.1
-wxPython==4.2.0
-xhtml2pdf==0.2.5
+wxPython~=4.2.1
+xhtml2pdf~=0.2.15
 zipp==3.8.1
+appdirs~=1.4.4
+openai~=0.27.8

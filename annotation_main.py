@@ -136,9 +136,15 @@ class textEditor(wx.Frame):
 
         # Ui -- textCtrl
         self.textCtrl = rt.RichTextCtrl(lPanel, -1, style=rt.RE_MULTILINE | wx.TE_RICH2 |
-                                        wx.TE_NO_VSCROLL | wx.TE_WORDWRAP | wx.TE_AUTO_URL | wx.TE_PROCESS_TAB | wx.BORDER_NONE)
-        self.textCtrl.SetEditable(True)
+                                         wx.TE_NO_VSCROLL | wx.TE_WORDWRAP | wx.TE_AUTO_URL | wx.TE_PROCESS_TAB | wx.BORDER_NONE)
+        # self.textCtrl.SetEditable(True)
+        # self.textCtrl = wx.TextCtrl(lPanel, style=wx.TE_MULTILINE|wx.TE_READONLY|wx.TE_RICH2, value="Press 'New conversation' to create a new conversation.")
+        self.textCtrl.SetMinSize((300, 300))
         # self.require_input = wx.TextCtrl(lPanel)
+        self.input_text = wx.TextCtrl(lPanel, size=(-1, 60), style=wx.TE_MULTILINE|wx.TE_PROCESS_ENTER)
+        self.input_text.SetFont(labels)
+        self.send_button = wx.Button(lPanel, label="Send")
+        self.send_button.Bind(wx.EVT_BUTTON, self.on_send_pressed)
 
         textAttr = rt.RichTextAttr()
         textAttr.SetFont(font)
@@ -165,6 +171,11 @@ class textEditor(wx.Frame):
         lSizer.Add(lLabel, flag=wx.LEFT | wx.TOP, border=24)
         lSizer.Add((-1, 20))
         lSizer.Add(self.textCtrl, proportion=1, flag=wx.EXPAND)
+
+        lSizer.Add(wx.StaticLine(lPanel), flag=wx.EXPAND | wx.ALL, border=10)
+        lSizer.Add(self.input_text, flag=wx.EXPAND | wx.ALL, border=10)
+        lSizer.Add(self.send_button, flag=wx.ALL, border=10)
+
         # line = wx.StaticLine(lPanel)
         # lSizer.Add(line, flag=wx.EXPAND | wx.BOTTOM | wx.TOP, border=5)
         # lSizer.Add(self.require_input, proportion=1, flag=wx.EXPAND)
@@ -242,6 +253,9 @@ class textEditor(wx.Frame):
 
         self.SetMenuBar(menuBar)
 
+
+    def on_send_pressed(self, e):
+        pass
     def setStatusBar(self):
         self.statusbar = self.CreateStatusBar(style=wx.STB_DEFAULT_STYLE)
 
